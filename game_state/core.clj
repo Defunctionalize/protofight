@@ -42,5 +42,5 @@
             :initialize-state
             (fn [tt state _ _]
               {:player {:position [0 0]}
-               :config {:speed 5 :dash-speed 10}
+               :config {:speed 5 :dash-speed 50}
                :input  {:vertical 0.0 :horizontal 0.0}})}))

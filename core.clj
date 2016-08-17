@@ -4,23 +4,17 @@
     [arcadia.linear :as al]
     [utils :refer :all]
     [state-system.core :as ss]
-    [game-state.core :as gs]
-    )
+    [game-state.core :as gs])
   (:import [UnityEngine Debug GameObject Transform SpriteRenderer
             Sprite Rect Vector2 Input Time Transform Resources
-            Rigidbody2D ForceMode BoxCollider2D Vector3])
-  )
+            Rigidbody2D ForceMode BoxCollider2D Vector3]))
 
 (def regardless #(fn [& _] (%)))
 (defmacro <> [o [f & xs]] `(let [o# ~o] (~f o# ~@xs) o#))   ; god dammit josh parker.  fuck your variable names.
 
 (def components
   {:rigid     Rigidbody2D
-   :transform Transform
-
-
-   })
-
+   :transform Transform})
 
 (def reload-deps!
   (regardless (fn []
@@ -74,14 +68,12 @@
 (defn build-world! [helios]
   (a/set-state! helios :state [{} [] [{}]])
   (a/set-state! helios :input [[(current-time-millis) :initialize-state]])
-  (a/set-state! helios :entities {:player (be-created! recipes (a/state helios :entities) :player)})
-  )
+  (a/set-state! helios :entities {:player (be-created! recipes (a/state helios :entities) :player)}))
 
 (def side-effect-map
   {:add-impulse
    (fn [unity-entity impulse-magnitude]
      (let [rb (get-stored-component unity-entity :rigid)]
-       (a/log "Adding Force: " impulse-magnitude "!!")
        (.AddForce rb (al/v2* (al/v2 1 0) impulse-magnitude) ForceMode/VelocityChange)))})
 
 (defn destroy-world! [helios]
@@ -108,19 +100,14 @@
 (defn add-input-axes-to-game-state [helios]
   (add-input helios [:input :horizontal (Input/GetAxis "horizontal")])
   (add-input helios [:input :vertical (Input/GetAxis "vertical")])
-  (add-input helios [:input :dash (Input/GetAxis "dash")])
-  )
-
+  (add-input helios [:input :dash (Input/GetAxis "dash")]))
 
 (defn match-position [helios]
   (let [state-player (:player (get-game-state helios))
         unity-player (:player (a/state helios :entities))
         rb (get-stored-component unity-player :rigid)
         [x y] (:position state-player)]
-    ;(>log> state-player)
-    (.MovePosition rb (al/v2 x y))
-    ))
-
+    (.MovePosition rb (al/v2 x y))))
 
 (defn perform-side-effect [unity-entity [side-effect-type & side-effect-args]]
   (apply (side-effect-map side-effect-type) unity-entity side-effect-args))
@@ -135,34 +122,28 @@
 
 (defn adjust-player [helios]
   (match-position helios)
-  (perform-all-side-effects helios)
-  )
+  (perform-all-side-effects helios))
 
 (defn update-helios [helios]
   (handle-input helios)
   (when (a/state helios :state)
     (add-input-axes-to-game-state helios)))
 
-(defn ->state-entity [unity-entity]
-  (let [current-pos (get-stored-component unity-entity :transform)])
-  {:position []})
-
-(defn ->state [helios-entities]
-  {})
+(defn ->state-entity [[entity-key unity-entity]]
+  (let [current-pos (.position (get-stored-component unity-entity :transform))]
+    {entity-key {:position [(.x current-pos) (.y current-pos)]}}))
 
 (defn observations [helios]
   (let [old-state (get-game-state helios)
-        current-unity-state (->state (a/state helios :entities))]
-    {:player {:position [0 0]}}))
+        current-unity-state (into {} (map ->state-entity (a/state helios :entities)))]
+    current-unity-state))
 
 (defn fixed-update-helios [helios]
   (when (a/state helios :state)
     (let [new-observations (observations helios)]
       (advance-engine helios [:fixed-update Time/fixedDeltaTime new-observations]))
-    (adjust-player helios)
-    ))
+    (adjust-player helios)))
 
 (defn in-the-beginning [helios]
   (a/hook+ helios :update update-helios)
-  (a/hook+ helios :fixed-update fixed-update-helios)
-  )
+  (a/hook+ helios :fixed-update fixed-update-helios))
