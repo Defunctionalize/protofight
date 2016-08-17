@@ -2,3 +2,7 @@
 .idea
 *.meta
 Arcadia
+/repl.clj
+/Player1.prefab
+/Helios.prefab
+/editor-settings.unity
