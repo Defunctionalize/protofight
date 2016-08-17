@@ -14,9 +14,9 @@
 
 (defn handle-dash [state]
   (let [dash-speed (get-in state [:config :dash-speed])
-        dashing-pressed? (get-in state [:input :dash])]
+        dashing-pressed? (pos? (get-in state [:input :dash]))]
     (if dashing-pressed?
-      (update-in state [:player :side-effects] conj [:add-impulse dash-speed])
+      (update-in state [:side-effects :player] (comp vec conj) [:add-impulse dash-speed])
       state)))
 
 (def game-engine
@@ -27,19 +27,19 @@
                   (handle-walk fixed-delta-time)
                   handle-dash))
 
-                        :input
-                        (fn [tt state _ _ input-key value]
-                          (assoc-in state [:input input-key] value))
+            :input
+            (fn [tt state _ _ input-key value]
+              (assoc-in state [:input input-key] value))
 
-                        :effects-performed
-                        (fn [tt state _ _ entity-keys]
-                          (assoc state :side-effects
-                                       (if (= :all entity-keys)
-                                         {}
-                                         (filter (-> entity-keys set complement) (:side-effects state)))))
+            :effects-performed
+            (fn [tt state _ _ entity-keys]
+              (assoc state :side-effects
+                           (if (= :all entity-keys)
+                             {}
+                             (filter (-> entity-keys set complement) (:side-effects state)))))
 
-                        :initialize-state
-                        (fn [tt state _ _]
-                          {:player {:position [0 0]}
-                           :config {:speed 5}
-                           :input  {:vertical 0.0 :horizontal 0.0}})}))
+            :initialize-state
+            (fn [tt state _ _]
+              {:player {:position [0 0]}
+               :config {:speed 5 :dash-speed 10}
+               :input  {:vertical 0.0 :horizontal 0.0}})}))
