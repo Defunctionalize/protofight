@@ -6,11 +6,21 @@
     [state-system.core :as ss]
     [game-state.core :as gs]
     )
-  (:import [UnityEngine Debug GameObject Transform SpriteRenderer Sprite Rect Vector2 Input Time Transform Resources Rigidbody2D ForceMode BoxCollider2D Vector3])
+  (:import [UnityEngine Debug GameObject Transform SpriteRenderer
+            Sprite Rect Vector2 Input Time Transform Resources
+            Rigidbody2D ForceMode BoxCollider2D Vector3])
   )
 
 (def regardless #(fn [& _] (%)))
 (defmacro <> [o [f & xs]] `(let [o# ~o] (~f o# ~@xs) o#))   ; god dammit josh parker.  fuck your variable names.
+
+(def components
+  {:rigid     Rigidbody2D
+   :transform Transform
+
+
+   })
+
 
 (def reload-deps!
   (regardless (fn []
@@ -41,6 +51,11 @@
     (a/set-state! helios :input [])
     (a/set-state! helios :state latest-state-data)))
 
+(defn get-stored-component [unity-entity component-key]
+  (let [component-type (or (component-key components)
+                           (throw (Exception. (str "Invalid Component Access: " component-key " maps to no components"))))]
+    (into-state unity-entity component-key (a/cmpt unity-entity component-type))))
+
 (def recipes
   {:player
    (fn [entities] (-> (GameObject.)
@@ -65,7 +80,7 @@
 (def side-effect-map
   {:add-impulse
    (fn [unity-entity impulse-magnitude]
-     (let [rb (into-state unity-entity :rigid Rigidbody2D)]
+     (let [rb (get-stored-component unity-entity :rigid)]
        (a/log "Adding Force: " impulse-magnitude "!!")
        (.AddForce rb (al/v2* (al/v2 1 0) impulse-magnitude) ForceMode/VelocityChange)))})
 
@@ -100,7 +115,7 @@
 (defn match-position [helios]
   (let [state-player (:player (get-game-state helios))
         unity-player (:player (a/state helios :entities))
-        rb (into-state unity-player :rigid (a/cmpt unity-player Rigidbody2D))
+        rb (get-stored-component unity-player :rigid)
         [x y] (:position state-player)]
     ;(>log> state-player)
     (.MovePosition rb (al/v2 x y))
@@ -128,9 +143,22 @@
   (when (a/state helios :state)
     (add-input-axes-to-game-state helios)))
 
+(defn ->state-entity [unity-entity]
+  (let [current-pos (get-stored-component unity-entity :transform)])
+  {:position []})
+
+(defn ->state [helios-entities]
+  {})
+
+(defn observations [helios]
+  (let [old-state (get-game-state helios)
+        current-unity-state (->state (a/state helios :entities))]
+    {:player {:position [0 0]}}))
+
 (defn fixed-update-helios [helios]
   (when (a/state helios :state)
-    (advance-engine helios [:fixed-update Time/fixedDeltaTime])
+    (let [new-observations (observations helios)]
+      (advance-engine helios [:fixed-update Time/fixedDeltaTime new-observations]))
     (adjust-player helios)
     ))
 

@@ -22,8 +22,9 @@
 (def game-engine
   (partial ss/input-engine
            {:fixed-update
-            (fn [tt state _ _ fixed-delta-time]
+            (fn [tt state _ _ fixed-delta-time new-observations]
               (-> state
+                  (merge new-observations)
                   (handle-walk fixed-delta-time)
                   handle-dash))
 
