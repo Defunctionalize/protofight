@@ -25,8 +25,8 @@
        ;(>log> dash)
        (-> player
            (handle-walk walk-speed horizontal vertical app-speed-mod)
-           ;(when-> (constantly (pos? dash))
-           ;        (handle-dash dash-speed))
+           (when-> (constantly (pos? dash))
+                   (handle-dash dash-speed))
            )))})
 
 (defn updated-entity [[entity-key entity] & args]
@@ -47,12 +47,13 @@
            {:fixed-update
             (fn [tt instant accretive input fixed-delta-time new-observations]
               ;(>log> instant)
-              (->> instant
-                ;(deep-merge instant new-observations)
-                   (map #(updated-entity % tt instant accretive input fixed-delta-time))
-                   (into {})
-                   ;>log>
-                   ))
+              (->>
+                ;instant
+                (deep-merge instant new-observations)
+                (map #(updated-entity % tt instant accretive input fixed-delta-time))
+                (into {})
+                ;>log>
+                ))
 
             :input
             (fn [tt state _ _ input-key value]

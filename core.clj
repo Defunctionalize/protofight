@@ -118,17 +118,9 @@
 
 
 (defn add-input-axes-to-game-state [helios]
-  (let [calling-for-no-reason [
-                               [:input :horizontal (Input/GetAxis "horizontal")]
-                               [:input :vertical (Input/GetAxis "vertical")]
-                               [:input :dash (Input/GetAxis "dash")]
-                               ]
-        inputs [
-                [:input :horizontal (Input/GetAxisRaw "horizontal")]
-                [:input :vertical (Input/GetAxisRaw "vertical")]
-                ;[:input :dash (Input/GetAxis "dash")]
-                ]]
-    (apply add-inputs! helios inputs)))
+  (apply add-inputs! helios [[:input :horizontal (Input/GetAxisRaw "horizontal")]
+                             [:input :vertical (Input/GetAxisRaw "vertical")]
+                             [:input :dash (Input/GetAxis "dash")]]))
 
 (defn match-position [helios]
   (let [state-player (:player (get-game-state helios))
@@ -154,7 +146,7 @@
 
 (defn adjust-player [helios]
   (match-position helios)
-  ;(perform-all-side-effects helios)
+  (perform-all-side-effects helios)
   )
 
 (defn update-helios [helios]
@@ -165,20 +157,20 @@
   )
 
 (defn ->state-entity [[entity-key unity-entity]]
-  (let [current-pos ^Vector2 (.position ^Transform (get-stored-component unity-entity :transform))]
+  (let [current-pos (.position ^Transform (get-stored-component unity-entity :transform))]
     {entity-key {:position [(.x current-pos) (.y current-pos)]}}))
 
-(defn observations [helios]
-  (let [old-state (get-game-state helios)
-        current-unity-state (into {} (map ->state-entity (a/state helios :entities)))]
-    current-unity-state))
+;(defn observations [helios]
+;  (let [old-state (get-game-state helios)
+;        current-unity-state (into {} (map ->state-entity (a/state helios :entities)))]
+;    current-unity-state))
 
 (defn fixed-update-helios [helios]
   (when (a/state helios :instant)
-    ;(let [new-observations (observations helios)]
-      (advance-engine! helios [:fixed-update Time/fixedDeltaTime {}])
-      ;)
-    ;(adjust-player helios)
+    (let [new-observations (into {} (map ->state-entity (a/state helios :entities)))]
+      (advance-engine! helios [:fixed-update Time/fixedDeltaTime new-observations])
+      )
+    (adjust-player helios)
     )
 )
 
