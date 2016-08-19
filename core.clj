@@ -7,23 +7,12 @@
     [game-state.core :as gs])
   (:import [UnityEngine Debug GameObject Transform SpriteRenderer
             Sprite Rect Vector2 Input Time Transform Resources
-            Rigidbody2D ForceMode BoxCollider2D Vector3]))
-
-(def regardless #(fn [& _] (%)))
-(defmacro <> [o [f & xs]] `(let [o# ~o] (~f o# ~@xs) o#))   ; god dammit josh parker.  fuck your variable names.
+            Rigidbody2D ForceMode BoxCollider2D Vector3]
+           ArcadiaState))
 
 (def components
   {:rigid     Rigidbody2D
    :transform Transform})
-
-(def reload-deps!
-  (regardless (fn []
-                (>log> "pressed reload")
-                (use '[utils] :reload)
-                (require '[arcadia.core :as a] :reload)
-                (require '[state-system.core :as ss] :reload)
-                (require '[game-state.core :as gs] :reload)
-                (require '[arcadia.linear :as al] :reload))))
 
 (defn make-sprite
   ([path] (make-sprite path path))
@@ -36,14 +25,33 @@
   "returns the the value of the (a/state entity key) or stores and returns value"
   (or (a/state entity key) (val (a/set-state! entity key value))))
 
-(defn advance-engine [helios event]
-  (let [game-data (a/state helios :state)
-        latest-state-data (ss/engine gs/game-engine
-                                     game-data
-                                     (conj (a/state helios :input)
-                                           (vec (cons (current-time-millis) event))))]
-    (a/set-state! helios :input [])
-    (a/set-state! helios :state latest-state-data)))
+(defn add-input! [helios input-event]
+  (let [state-atom (.state (a/cmpt helios ArcadiaState))
+        current-time (current-time-millis)]
+    (swap! state-atom update :new-events conj (into [current-time] input-event))))
+
+(defn consume-event! [transitioner helios new-event]
+  (let [state-atom (.state (a/cmpt helios ArcadiaState))
+        {:keys [instant accretive input]} (a/state helios)
+        new-instant (transitioner instant accretive input new-event)
+        new-facts (ss/new-facts (first new-event) instant new-instant)]
+    (swap! state-atom #(-> %
+                           (assoc :instant new-instant)
+                           (update :accretive into new-facts)
+                           (update :input conj new-event)
+                           ;(<!> (a/log))
+                           )))
+  ;(a/log (a/state helios))
+  )
+
+(defn consume-queued-events! [transitioner helios]
+  ;(a/log "new events: " (a/state helios :new-events))
+  (doall (map #(consume-event! transitioner helios %) (a/state helios :new-events)))
+  (a/set-state! helios :new-events []))
+
+(defn advance-engine! [helios event]
+  (add-input! helios event)
+  (consume-queued-events! gs/game-engine helios))
 
 (defn get-stored-component [unity-entity component-key]
   (let [component-type (or (component-key components)
@@ -53,12 +61,12 @@
 (def recipes
   {:player
    (fn [entities] (-> (GameObject.)
-                      (<> (-> (a/cmpt+ Rigidbody2D)
-                              (<> (-> .gravityScale (set! 0)))))
-                      (<> (a/cmpt+ BoxCollider2D))
-                      (<> (-> (a/cmpt+ SpriteRenderer)
-                              .sprite
-                              (set! (make-sprite "Sprites/Player"))))))})
+                      (<!> (-> (a/cmpt+ Rigidbody2D)
+                               (<!> (-> .gravityScale (set! 0)))))
+                      (<!> (a/cmpt+ BoxCollider2D))
+                      (<!> (-> (a/cmpt+ SpriteRenderer)
+                               .sprite
+                               (set! (make-sprite "Sprites/Player"))))))})
 
 (defn be-created! [recipes helios-entities object-recipe-key]
   (if-let [existing-entity (object-recipe-key helios-entities)]
@@ -66,8 +74,11 @@
     ((object-recipe-key recipes) helios-entities)))
 
 (defn build-world! [helios]
-  (a/set-state! helios :state [{} [] [{}]])
-  (a/set-state! helios :input [[(current-time-millis) :initialize-state]])
+  (a/set-state! helios :instant {})
+  (a/set-state! helios :accretive [])
+  (a/set-state! helios :input [{}])
+  (a/set-state! helios :new-events [[(current-time-millis) :initialize-state]])
+  (consume-queued-events! gs/game-engine helios)
   (a/set-state! helios :entities {:player (be-created! recipes (a/state helios :entities) :player)}))
 
 (def side-effect-map
@@ -79,28 +90,28 @@
 (defn destroy-world! [helios]
   (doall (map #(a/destroy-immediate (val %)) (a/state helios :entities)))
   (a/set-state! helios :entities {})
-  (a/set-state! helios :state nil))
+  (a/set-state! helios :instant nil)
+  (a/set-state! helios :accretive [])
+  (a/set-state! helios :input [])
+  (a/set-state! helios :new-events []))
 
-(def get-game-state #(-> % (a/state :state) first))
+(def get-game-state #(a/state % :instant))
 
 (defn log-debug! [helios]
-  (a/log (:side-effects (get-game-state helios))))
+  (add-input! helios [:fixed-update 0.2 {}])
+  (consume-queued-events! gs/game-engine helios))
 
 (defn handle-input [helios]
   ((cond
      (pos? (Input/GetAxisRaw "Submit")) build-world!
      (pos? (Input/GetAxisRaw "Cancel")) destroy-world!
-     (pos? (Input/GetAxisRaw "Reload")) reload-deps!
      (pos? (Input/GetAxisRaw "log-debug")) log-debug!
      :else (constantly nil)) helios))
 
-(defn add-input [helios input-event]
-  (a/set-state! helios :input (conj (a/state helios :input) (into [(current-time-millis)] input-event))))
-
 (defn add-input-axes-to-game-state [helios]
-  (add-input helios [:input :horizontal (Input/GetAxis "horizontal")])
-  (add-input helios [:input :vertical (Input/GetAxis "vertical")])
-  (add-input helios [:input :dash (Input/GetAxis "dash")]))
+  (add-input! helios [:input :horizontal (Input/GetAxis "horizontal")])
+  (add-input! helios [:input :vertical (Input/GetAxis "vertical")])
+  (add-input! helios [:input :dash (Input/GetAxis "dash")]))
 
 (defn match-position [helios]
   (let [state-player (:player (get-game-state helios))
@@ -116,18 +127,25 @@
   (let [unity-entity (entity-key (a/state helios :entities))]
     (doall (map (partial perform-side-effect unity-entity) side-effects))))
 
+(defn get-side-effects [helios]
+  (let [gs (get-game-state helios)]
+    (zipmap (keys gs) (map :side-effects (vals gs)))))
+
 (defn perform-all-side-effects [helios]
-  (doall (map #(apply perform-entity-side-effects helios %) (-> helios get-game-state :side-effects)))
-  (add-input helios [:effects-performed :all]))
+  (doall (map #(apply perform-entity-side-effects helios %) (get-side-effects helios)))
+  (add-input! helios [:effects-performed]))
 
 (defn adjust-player [helios]
   (match-position helios)
-  (perform-all-side-effects helios))
+  ;(perform-all-side-effects helios)
+  )
 
 (defn update-helios [helios]
   (handle-input helios)
-  (when (a/state helios :state)
-    (add-input-axes-to-game-state helios)))
+  (when (a/state helios :instant)
+    (add-input-axes-to-game-state helios)
+    )
+  )
 
 (defn ->state-entity [[entity-key unity-entity]]
   (let [current-pos (.position (get-stored-component unity-entity :transform))]
@@ -139,11 +157,13 @@
     current-unity-state))
 
 (defn fixed-update-helios [helios]
-  (when (a/state helios :state)
+  (when (a/state helios :instant)
     (let [new-observations (observations helios)]
-      (advance-engine helios [:fixed-update Time/fixedDeltaTime new-observations]))
-    (adjust-player helios)))
+      (advance-engine! helios [:fixed-update Time/fixedDeltaTime new-observations]))
+    (adjust-player helios)
+    )
+)
 
 (defn in-the-beginning [helios]
-  (a/hook+ helios :update update-helios)
-  (a/hook+ helios :fixed-update fixed-update-helios))
+  (a/hook+ helios :update #'update-helios)
+  (a/hook+ helios :fixed-update #'fixed-update-helios))

@@ -30,10 +30,13 @@
 ;; ------------------ ENGINE -------------------------------------------------------
 ;; ---------------------------------------------------------------------------------
 
+(defn new-facts [event-time old-state new-state]
+  (->reversible-facts event-time (diff old-state new-state)))
+
 (defn update-state [transitioner [instant-state accretive-state input-state] event]
   (let [event-time (first event)
         new-instant-state (transitioner instant-state accretive-state input-state event)
-        new-facts (->reversible-facts event-time (diff instant-state new-instant-state))
+        new-facts (new-facts event-time instant-state new-instant-state)
         new-input-state (conj input-state event)
         new-accretive-state (into accretive-state new-facts)]
     [new-instant-state new-accretive-state new-input-state]))
