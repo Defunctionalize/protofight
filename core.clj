@@ -3,7 +3,7 @@
     [arcadia.core :as a]
     [arcadia.linear :as al]
     [utils :refer :all]
-    [state-system.core :as ss]
+    [state-system.fact-state :refer [->new-facts]]
     [game-state.core :as gs])
   (:import [UnityEngine Debug GameObject Transform SpriteRenderer
             Sprite Rect Vector2 Input Time Transform Resources
@@ -37,15 +37,13 @@
   (let [^Atom state-atom (.state ^ArcadiaState (a/cmpt helios ArcadiaState))
         {:keys [instant accretive input]} (a/state helios)
         new-instant (transitioner instant accretive input new-event)
-        new-facts (ss/new-facts (first new-event) instant new-instant)]
+        new-facts (->new-facts = (first new-event) instant new-instant)]
     (swap! state-atom #(-> %
                            (assoc :instant new-instant)
                            (update :accretive into new-facts)
                            (update :input conj new-event)
                            ;(<!> (a/log))
-                           )))
-  ;(a/log (a/state helios))
-  )
+                           ))))
 
 (defn consume-queued-events! [transitioner helios]
   ;(a/log "new events: " (a/state helios :new-events))
@@ -100,9 +98,13 @@
 
 (def get-game-state #(a/state % :instant))
 
+(defn floor [divisor target]
+  (-> target (quot divisor) (* divisor)))
+
+
 (defn log-debug! [helios]
   ;(a/log (type (.state (a/cmpt helios ArcadiaState))))
-  (a/log (type (a/state helios)))
+  (a/log (floor 0.1 12.54))
   ;(add-inputs! helios [:fixed-update 0.2 {}])
   ;(consume-queued-events! gs/game-engine helios)
   )
@@ -114,11 +116,19 @@
      (pos? (Input/GetAxisRaw "log-debug")) log-debug!
      :else (constantly nil)) helios))
 
+
 (defn add-input-axes-to-game-state [helios]
-  (add-inputs! helios
-              [:input :horizontal (Input/GetAxis "horizontal")]
-              [:input :vertical (Input/GetAxis "vertical")]
-              [:input :dash (Input/GetAxis "dash")]))
+  (let [calling-for-no-reason [
+                               [:input :horizontal (Input/GetAxis "horizontal")]
+                               [:input :vertical (Input/GetAxis "vertical")]
+                               [:input :dash (Input/GetAxis "dash")]
+                               ]
+        inputs [
+                [:input :horizontal (Input/GetAxisRaw "horizontal")]
+                [:input :vertical (Input/GetAxisRaw "vertical")]
+                ;[:input :dash (Input/GetAxis "dash")]
+                ]]
+    (apply add-inputs! helios inputs)))
 
 (defn match-position [helios]
   (let [state-player (:player (get-game-state helios))
@@ -155,7 +165,7 @@
   )
 
 (defn ->state-entity [[entity-key unity-entity]]
-  (let [current-pos (.position ^Transform (get-stored-component unity-entity :transform))]
+  (let [current-pos ^Vector2 (.position ^Transform (get-stored-component unity-entity :transform))]
     {entity-key {:position [(.x current-pos) (.y current-pos)]}}))
 
 (defn observations [helios]
