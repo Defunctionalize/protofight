@@ -10,6 +10,8 @@
             Rigidbody2D ForceMode BoxCollider2D Vector3]
            ArcadiaState))
 
+(set! *warn-on-reflection* true)
+
 (def components
   {:rigid     Rigidbody2D
    :transform Transform})
@@ -26,13 +28,13 @@
   (or (a/state entity key) (val (a/set-state! entity key value))))
 
 (defn add-inputs! [helios & input-events]
-  (let [state-atom (.state (a/cmpt helios ArcadiaState))
+  (let [^Atom state-atom (.state ^ArcadiaState (a/cmpt helios ArcadiaState))
         current-time (current-time-millis)]
     (swap! state-atom update :new-events into (map #(into [current-time] %) input-events))))
 
 
 (defn consume-event! [transitioner helios new-event]
-  (let [state-atom (.state (a/cmpt helios ArcadiaState))
+  (let [^Atom state-atom (.state ^ArcadiaState (a/cmpt helios ArcadiaState))
         {:keys [instant accretive input]} (a/state helios)
         new-instant (transitioner instant accretive input new-event)
         new-facts (ss/new-facts (first new-event) instant new-instant)]
@@ -85,7 +87,7 @@
 (def side-effect-map
   {:add-impulse
    (fn [unity-entity impulse-magnitude]
-     (let [rb (get-stored-component unity-entity :rigid)]
+     (let [^Rigidbody2D rb (get-stored-component unity-entity :rigid)]
        (.AddForce rb (al/v2* (al/v2 1 0) impulse-magnitude) ForceMode/VelocityChange)))})
 
 (defn destroy-world! [helios]
@@ -99,8 +101,11 @@
 (def get-game-state #(a/state % :instant))
 
 (defn log-debug! [helios]
-  (add-inputs! helios [:fixed-update 0.2 {}])
-  (consume-queued-events! gs/game-engine helios))
+  ;(a/log (type (.state (a/cmpt helios ArcadiaState))))
+  (a/log (type (a/state helios)))
+  ;(add-inputs! helios [:fixed-update 0.2 {}])
+  ;(consume-queued-events! gs/game-engine helios)
+  )
 
 (defn handle-input [helios]
   ((cond
@@ -111,14 +116,14 @@
 
 (defn add-input-axes-to-game-state [helios]
   (add-inputs! helios
-              [:input :horizontal (Input/GetAxisRaw "horizontal")]
-              [:input :vertical (Input/GetAxisRaw "vertical")]
+              [:input :horizontal (Input/GetAxis "horizontal")]
+              [:input :vertical (Input/GetAxis "vertical")]
               [:input :dash (Input/GetAxis "dash")]))
 
 (defn match-position [helios]
   (let [state-player (:player (get-game-state helios))
         unity-player (:player (a/state helios :entities))
-        rb (get-stored-component unity-player :rigid)
+        ^Rigidbody2D rb (get-stored-component unity-player :rigid)
         [x y] (:position state-player)]
     (.MovePosition rb (al/v2 x y))))
 
@@ -150,7 +155,7 @@
   )
 
 (defn ->state-entity [[entity-key unity-entity]]
-  (let [current-pos (.position (get-stored-component unity-entity :transform))]
+  (let [current-pos (.position ^Transform (get-stored-component unity-entity :transform))]
     {entity-key {:position [(.x current-pos) (.y current-pos)]}}))
 
 (defn observations [helios]

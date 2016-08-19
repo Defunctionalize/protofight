@@ -2,6 +2,8 @@
   (:require [state-system.core :as ss]
             [utils :refer :all]))
 
+(set! *warn-on-reflection* true)
+
 (defmacro when-> [value predicate & expressions]
   `(if (~predicate ~value) (-> ~value ~@expressions) ~value))
 
