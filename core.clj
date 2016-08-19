@@ -25,10 +25,11 @@
   "returns the the value of the (a/state entity key) or stores and returns value"
   (or (a/state entity key) (val (a/set-state! entity key value))))
 
-(defn add-input! [helios input-event]
+(defn add-inputs! [helios & input-events]
   (let [state-atom (.state (a/cmpt helios ArcadiaState))
         current-time (current-time-millis)]
-    (swap! state-atom update :new-events conj (into [current-time] input-event))))
+    (swap! state-atom update :new-events into (map #(into [current-time] %) input-events))))
+
 
 (defn consume-event! [transitioner helios new-event]
   (let [state-atom (.state (a/cmpt helios ArcadiaState))
@@ -50,7 +51,7 @@
   (a/set-state! helios :new-events []))
 
 (defn advance-engine! [helios event]
-  (add-input! helios event)
+  (add-inputs! helios event)
   (consume-queued-events! gs/game-engine helios))
 
 (defn get-stored-component [unity-entity component-key]
@@ -98,7 +99,7 @@
 (def get-game-state #(a/state % :instant))
 
 (defn log-debug! [helios]
-  (add-input! helios [:fixed-update 0.2 {}])
+  (add-inputs! helios [:fixed-update 0.2 {}])
   (consume-queued-events! gs/game-engine helios))
 
 (defn handle-input [helios]
@@ -109,9 +110,10 @@
      :else (constantly nil)) helios))
 
 (defn add-input-axes-to-game-state [helios]
-  (add-input! helios [:input :horizontal (Input/GetAxis "horizontal")])
-  (add-input! helios [:input :vertical (Input/GetAxis "vertical")])
-  (add-input! helios [:input :dash (Input/GetAxis "dash")]))
+  (add-inputs! helios
+              [:input :horizontal (Input/GetAxisRaw "horizontal")]
+              [:input :vertical (Input/GetAxisRaw "vertical")]
+              [:input :dash (Input/GetAxis "dash")]))
 
 (defn match-position [helios]
   (let [state-player (:player (get-game-state helios))
@@ -133,7 +135,7 @@
 
 (defn perform-all-side-effects [helios]
   (doall (map #(apply perform-entity-side-effects helios %) (get-side-effects helios)))
-  (add-input! helios [:effects-performed]))
+  (add-inputs! helios [:effects-performed]))
 
 (defn adjust-player [helios]
   (match-position helios)
@@ -158,9 +160,10 @@
 
 (defn fixed-update-helios [helios]
   (when (a/state helios :instant)
-    (let [new-observations (observations helios)]
-      (advance-engine! helios [:fixed-update Time/fixedDeltaTime new-observations]))
-    (adjust-player helios)
+    ;(let [new-observations (observations helios)]
+      (advance-engine! helios [:fixed-update Time/fixedDeltaTime {}])
+      ;)
+    ;(adjust-player helios)
     )
 )
 

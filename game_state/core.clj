@@ -45,7 +45,8 @@
            {:fixed-update
             (fn [tt instant accretive input fixed-delta-time new-observations]
               ;(>log> instant)
-              (->> (deep-merge instant new-observations)
+              (->> instant
+                ;(deep-merge instant new-observations)
                    (map #(updated-entity % tt instant accretive input fixed-delta-time))
                    (into {})
                    ;>log>
