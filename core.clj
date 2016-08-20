@@ -180,3 +180,5 @@
 ;- Common debugging operations:
 ;1 - NullReferenceException:
 ;    you probably changed a game state related keyword and its causing map lookups to fail.  grep for uses of old key
+;2 - cant cast Coll -> Key
+;    could be you're filtering a dict and forgot to cast it back into a dict
