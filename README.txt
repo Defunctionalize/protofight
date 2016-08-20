@@ -24,13 +24,16 @@ submit: initializes the game state with a player entity, and creates the player 
 cancel: disposes the game state and all the game objects on screen.  this prevents you from
         having to reload play mode to escape a broken state
 
-horizontal/vertical/dash: causes the player sprite in the game state to change position.  no effect on memory
+horizontal/vertical/dash: causes the player sprite in the game state to change position.
+                          no effect on memory
 
 fire:  creates bullet entities in the game state only (does not create a corresponding game-object,
-       i never got around to that).  continue pressing this button to see memory tank and garbage collection start getting
-       well out of control
+       i never got around to that).  continue pressing this button to see memory tank and garbage
+       collection start getting well out of control
 
 log-debug: consoles the 3 different "views" of the current state.
            instant(aneous) view: the values of all attributes of all entities at the current time
-           input view: the list of all the events (or system inputs) that are required to build the instant state from scratch
-           accretive view: a list of all of the games "facts", that is, temporal values that show when something changed in the state
+           input view: the list of all the events (or system inputs) that are required to build
+                       the instant state from scratch
+           accretive view: a list of all of the games "facts", that is, temporal values that show
+                           when something changed in the state.  I use this for traversing time
