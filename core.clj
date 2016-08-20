@@ -102,12 +102,10 @@
   (-> target (quot divisor) (* divisor)))
 
 
-(defn log-debug! [helios]
-  ;(a/log (type (.state (a/cmpt helios ArcadiaState))))
-  ;(a/log (floor 0.1 12.54))
-  (a/log (update {} :side-effects (comp vec conj) [5]))
-  ;(add-inputs! helios [:fixed-update 0.2 {}])
-  ;(consume-queued-events! gs/game-engine helios)
+(defn log-debug! [master-game-obj]
+  (a/log "INSTANT STATE: " (a/state master-game-obj :instant))
+  (a/log "INPUT STATE: " (a/state master-game-obj :input))
+  (a/log "ACCRETIVE STATE: " (a/state master-game-obj :accretive))
   )
 
 (defn handle-input [helios]
