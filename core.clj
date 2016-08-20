@@ -35,11 +35,13 @@
   (let [^Atom state-atom (.state ^ArcadiaState (a/cmpt helios ArcadiaState))
         {:keys [instant accretive input]} (a/state helios)
         new-instant (transitioner instant accretive input new-event)
-        new-facts (->new-facts = (first new-event) instant new-instant)]
+        ;new-facts (->new-facts = (first new-event) instant new-instant)
+        new-facts []
+        ]
     (swap! state-atom #(-> %
                            (assoc :instant new-instant)
-                           (update :accretive into new-facts)
-                           (update :input conj new-event)
+                           ;(update :accretive into new-facts)
+                           ;(update :input conj new-event)
                            ;(<!> (a/log))
                            ))))
 
@@ -119,7 +121,8 @@
 (defn add-input-axes-to-game-state [helios]
   (apply add-inputs! helios [[:input :horizontal (Input/GetAxisRaw "horizontal")]
                              [:input :vertical (Input/GetAxisRaw "vertical")]
-                             [:input :dash (Input/GetAxis "dash")]]))
+                             [:input :dash (Input/GetAxis "dash")]
+                             [:input :fire (Input/GetAxis "fire")]]))
 
 (defn match-position [helios]
   (let [state-player (:player (get-game-state helios))

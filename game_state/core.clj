@@ -36,8 +36,8 @@
            (handle-movement walk-speed [horizontal vertical] app-speed-mod)
            (when-> (pressed? dash)
                    (handle-dash dash-speed))
-           ;(when-> (pressed? fire)
-           ;        (fire-bullet bullet-speed))
+           (when-> (pressed? fire)
+                   (fire-bullet bullet-speed))
            )))
    :bullet
    (fn [bullet _ _ _ _ app-speed-mod]
@@ -81,7 +81,7 @@
                    (let->> [entity-keys entity-values side-effects state-manipulations]
                            (let [mapped-side-effects (into {} (filter val (zipmap entity-keys side-effects)))]
                              (-> (zipmap entity-keys entity-values)
-                                 (#(reduce apply-effect % (filter identity state-manipulations)))
+                                 (#(reduce apply-effect % (apply concat (filter identity state-manipulations))))
                                  (update :side-effects (partial merge-with into) mapped-side-effects))))))
             :input
             (fn [tt state _ _ input-key value]
@@ -94,5 +94,5 @@
             :initialize-state
             (fn [tt state _ _]
               {:player {:position [0 0] :type :player}
-               :config {:walk-speed 5 :dash-speed 50}
-               :input  {:vertical 0.0 :horizontal 0.0}})}))
+               :config {:walk-speed 5 :dash-speed 50 :bullet-speed 50}
+               :input  {:vertical 0.0 :horizontal 0.0 :dash 0 :fire 0}})}))
