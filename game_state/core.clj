@@ -1,5 +1,5 @@
 (ns game-state.core
-  (:require [state-system.core :as ss]
+  (:require [game-state.state-system :as ss]
             [utils :refer :all]))
 
 (defmacro when-> [value predicate & expressions]

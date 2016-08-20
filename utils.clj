@@ -7,4 +7,4 @@
 (def >>logl> #(do (spit "arcadia-log.log" (str (System.DateTime/Now) ": " %1 " " %2 "\n") :file-mode System.IO.FileMode/Append) %2))
 (def regardless #(fn [& _] (%)))
 (defmacro let->> [binding body value] `(let [~binding ~value] ~body))
-(defmacro <!> [o [f & xs]] `(let [o# ~o] (~f o# ~@xs) o#))   ; god dammit josh parker.  fuck your variable names.
+(defmacro <!> [o [f & xs]] `(let [o# ~o] (~f o# ~@xs) o#))
