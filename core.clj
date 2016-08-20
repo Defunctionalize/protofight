@@ -104,7 +104,8 @@
 
 (defn log-debug! [helios]
   ;(a/log (type (.state (a/cmpt helios ArcadiaState))))
-  (a/log (floor 0.1 12.54))
+  ;(a/log (floor 0.1 12.54))
+  (a/log (update {} :side-effects (comp vec conj) [5]))
   ;(add-inputs! helios [:fixed-update 0.2 {}])
   ;(consume-queued-events! gs/game-engine helios)
   )
@@ -142,7 +143,7 @@
 
 (defn adjust-player [helios]
   (match-position helios)
-  ;(perform-all-side-effects helios)
+  (perform-all-side-effects helios)
   )
 
 (defn update-helios [helios]
@@ -153,15 +154,8 @@
   )
 
 (defn ->state-entity [[entity-key unity-entity]]
-  ;(>logl> "key" entity-key)
-  ;(>logl> "value" unity-entity)
   (let [current-pos (.position ^Transform (get-stored-component unity-entity :transform))]
     {entity-key {:position [(.x current-pos) (.y current-pos)]}}))
-
-;(defn observations [helios]
-;  (let [old-state (get-game-state helios)
-;        current-unity-state (into {} (map ->state-entity (a/state helios :entities)))]
-;    current-unity-state))
 
 (defn fixed-update-helios [helios]
   (when (a/state helios :instant)

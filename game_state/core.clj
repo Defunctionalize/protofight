@@ -18,8 +18,6 @@
 
 
 (defn deconstruct [entity-key entity-value]
-  ;(>logl> "key" entity-key)
-  ;(>logl> "value" entity-value)
   (let [entity (-> entity-value
                    (dissoc :side-effects)
                    (dissoc :state-manipulations)
@@ -71,11 +69,12 @@
                    (map #(updated-entity % tt instant accretive input fixed-delta-time))
                    (apply map vector)
                    (let->> [entity-keys entity-values side-effects state-manipulations]
-                           (-> (zipmap entity-keys entity-values)
-                               (#(reduce apply-effect % (filter identity side-effects)))
-                               (assoc :side-effects (into {} (filter second (map list entity-keys side-effects))))
-                               ))))
-
+                           (let [mapped-side-effects (into {} (filter val (zipmap entity-keys side-effects)))]
+                             (-> (zipmap entity-keys entity-values)
+                                 (#(reduce apply-effect % (filter identity state-manipulations)))
+                                 (update :side-effects (partial merge-with into) mapped-side-effects)
+                                 ;(>logl> "COMPLETED")
+                                 )))))
             :input
             (fn [tt state _ _ input-key value]
               (assoc-in state [:input input-key] value))
