@@ -136,17 +136,13 @@
   (let [unity-entity (entity-key (a/state helios :entities))]
     (doall (map (partial perform-side-effect unity-entity) side-effects))))
 
-(defn get-side-effects [helios]
-  (let [gs (get-game-state helios)]
-    (zipmap (keys gs) (map :side-effects (vals gs)))))
-
 (defn perform-all-side-effects [helios]
-  (doall (map #(apply perform-entity-side-effects helios %) (get-side-effects helios)))
+  (doall (map #(apply perform-entity-side-effects helios %) (-> helios get-game-state :side-effects)))
   (add-inputs! helios [:effects-performed]))
 
 (defn adjust-player [helios]
   (match-position helios)
-  (perform-all-side-effects helios)
+  ;(perform-all-side-effects helios)
   )
 
 (defn update-helios [helios]
@@ -157,6 +153,8 @@
   )
 
 (defn ->state-entity [[entity-key unity-entity]]
+  ;(>logl> "key" entity-key)
+  ;(>logl> "value" unity-entity)
   (let [current-pos (.position ^Transform (get-stored-component unity-entity :transform))]
     {entity-key {:position [(.x current-pos) (.y current-pos)]}}))
 
@@ -168,8 +166,7 @@
 (defn fixed-update-helios [helios]
   (when (a/state helios :instant)
     (let [new-observations (into {} (map ->state-entity (a/state helios :entities)))]
-      (advance-engine! helios [:fixed-update Time/fixedDeltaTime new-observations])
-      )
+      (advance-engine! helios [:fixed-update Time/fixedDeltaTime new-observations]))
     (adjust-player helios)
     )
 )
@@ -177,3 +174,9 @@
 (defn in-the-beginning [helios]
   (a/hook+ helios :update #'update-helios)
   (a/hook+ helios :fixed-update #'fixed-update-helios))
+
+
+;----------------
+;- Common debugging operations:
+;1 - NullReferenceException:
+;    you probably changed a game state related keyword and its causing map lookups to fail.  grep for uses of old key

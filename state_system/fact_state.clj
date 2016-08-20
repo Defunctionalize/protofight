@@ -43,16 +43,16 @@
 
 
 (let [timestamp 10
-      state-a {:player {:position [0 0] :update-type :player}
+      state-a {:player {:position [0 0] :type :player}
                :config {:walk-speed 5 :dash-speed 50}
                :input  {:vertical 0.0 :horizontal 0.0}}
-      state-b {:player {:position [0 0] :update-type :player}
+      state-b {:player {:position [0 0] :type :player}
                :config {:walk-speed 5 :dash-speed 50}
                :input  {:vertical 1.0 :horizontal 0.5}}
-      state-c {:player {:position [0 0] :update-type :player}
+      state-c {:player {:position [0 0] :type :player}
                :config {:walk-speed 5 :dash-speed 50}
                :input  {:vertical 0.0 :horizontal 0.0 :dash 30}}
-      state-d {:player {:position [0 0] :update-type :player}
+      state-d {:player {:position [0 0] :type :player}
                :config {:walk-speed 5 :dash-speed 50}
                :input  {:vertical 0.0}}
       state-e {:player {:position [1 0]}
@@ -66,7 +66,7 @@
   (= (->new-facts = timestamp state-a state-b) [[:input :vertical [0.0 1.0] timestamp] [:input :horizontal [0.0 0.5] timestamp]])
   (= (set (->new-facts = timestamp state-a state-e))
      (set [[:player :position [[0 0] [1 0]] timestamp]
-           [:player :update-type [:player nil] timestamp]
+           [:player :type [:player nil] timestamp]
            [:config :dash-speed [50 40] timestamp]
            [:config :outlook [nil {:disposition :sunny}] timestamp]
            [:input :horizontal [0.0 nil] timestamp]
