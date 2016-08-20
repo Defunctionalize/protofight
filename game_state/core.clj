@@ -65,16 +65,13 @@
            {:fixed-update
             (fn [tt instant accretive input fixed-delta-time new-observations]
               (->> (deep-merge instant new-observations)
-                   ;(>logl> "observed entities")
                    (map #(updated-entity % tt instant accretive input fixed-delta-time))
                    (apply map vector)
                    (let->> [entity-keys entity-values side-effects state-manipulations]
                            (let [mapped-side-effects (into {} (filter val (zipmap entity-keys side-effects)))]
                              (-> (zipmap entity-keys entity-values)
                                  (#(reduce apply-effect % (filter identity state-manipulations)))
-                                 (update :side-effects (partial merge-with into) mapped-side-effects)
-                                 ;(>logl> "COMPLETED")
-                                 )))))
+                                 (update :side-effects (partial merge-with into) mapped-side-effects))))))
             :input
             (fn [tt state _ _ input-key value]
               (assoc-in state [:input input-key] value))
@@ -92,7 +89,6 @@
 
             :initialize-state
             (fn [tt state _ _]
-              ;(>log> state)
               {:player {:position [0 0] :type :player}
                :config {:walk-speed 5 :dash-speed 50}
                :input  {:vertical 0.0 :horizontal 0.0}})}))
