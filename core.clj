@@ -94,7 +94,10 @@
 (def get-game-state #(a/state % :instant))
 
 (defn log-debug! [master-game-obj]
-  (a/log "CURRENT STATE: " (get-game-state master-game-obj)))
+  (a/log "INSTANT STATE: " (a/state master-game-obj :instant))
+  (a/log "INPUT STATE: " (a/state master-game-obj :input))
+  (a/log "ACCRETIVE STATE: " (a/state master-game-obj :accretive))
+  )
 
 (defn handle-input [master-game-obj]
   ((cond
