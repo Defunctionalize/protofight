@@ -10,8 +10,6 @@
             Rigidbody2D ForceMode BoxCollider2D Vector3]
            ArcadiaState))
 
-(set! *warn-on-reflection* true)
-
 (def components
   {:rigid     Rigidbody2D
    :transform Transform})

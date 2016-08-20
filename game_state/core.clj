@@ -2,16 +2,14 @@
   (:require [state-system.core :as ss]
             [utils :refer :all]))
 
-(set! *warn-on-reflection* true)
-
 (defmacro when-> [value predicate & expressions]
   `(if (~predicate ~value) (-> ~value ~@expressions) ~value))
 
-(defn handle-walk [player speed h v application-speed-mod]
-  (let [[player-x player-y] (:position player)
+(defn handle-movement [agent speed [h v] application-speed-mod]
+  (let [[agent-x agent-y] (:position agent)
         horiz (* h speed application-speed-mod)
         vert (* v speed application-speed-mod)]
-    (assoc player :position [(+ player-x horiz) (+ player-y vert)])))
+    (assoc agent :position [(+ agent-x horiz) (+ agent-y vert)])))
 
 (defn handle-dash [player dash-speed]
   (update player :side-effects (comp vec conj) [:add-impulse dash-speed]))
@@ -24,15 +22,26 @@
                    )]
     [entity-key entity (:side-effects entity-value) (:state-manipulations entity-value)]))
 
+(defn fire-bullet [player bullet-speed]
+  (update player :state-manipulations (comp vec conj) [:create :bullet bullet-speed (:position player) [1 0]]))
+
+(def pressed? #(constantly (pos? %)))
+
 (def update-map
   {:player
    (fn [player tt state _ _ app-speed-mod]
-     (let [{{:keys [walk-speed dash-speed]}    :config
-            {:keys [dash horizontal vertical]} :input} state]
+     (let [{{:keys [walk-speed dash-speed bullet-speed]} :config
+            {:keys [dash horizontal vertical fire]}      :input} state]
        (-> player
-           (handle-walk walk-speed horizontal vertical app-speed-mod)
-           (when-> (constantly (pos? dash))
-                   (handle-dash dash-speed)))))})
+           (handle-movement walk-speed [horizontal vertical] app-speed-mod)
+           (when-> (pressed? dash)
+                   (handle-dash dash-speed))
+           ;(when-> (pressed? fire)
+           ;        (fire-bullet bullet-speed))
+           )))
+   :bullet
+   (fn [bullet _ _ _ _ app-speed-mod]
+     (handle-movement bullet (:speed bullet) (:direction bullet) app-speed-mod))})
 
 (defn updated-entity [[entity-key entity] & args]
   (deconstruct entity-key (if-let [update-func (-> entity :type update-map)]
@@ -48,8 +57,10 @@
 
 (def RECIPES
   {:bullet
-   (fn [state x y]
-     {:position [x y]
+   (fn [state speed pos direction]
+     {:position pos
+      :speed speed
+      :direction direction
       :type :bullet})})
 
 (def EFFECTS
@@ -78,13 +89,6 @@
 
             :effects-performed
             (fn [tt state _ _ & entity-keys]
-              ;(let [entity-specified? (if entity-keys (set entity-keys) (constantly true))]
-              ;  (->> state
-              ;       (map #(if (entity-specified? (key %))
-              ;              [(key %) (dissoc (val %) :side-effects)]
-              ;              %))
-              ;       (into {}))
-              ;  )
               (dissoc state :side-effects))
 
             :initialize-state
